@@ -1,0 +1,12 @@
+[Unit]
+Description={{ name }}
+After=network.target
+
+[Service]
+User={{ slug }}-user
+Group=www-data
+WorkingDirectory=/home/{{ slug }}-user/{{ slug }}
+ExecStart=/home/{{ slug }}-user/{{ slug }}/.venv/bin/uwsgi --ini app.ini
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,181 @@
+// etch lays out project scaffolding
+
+{
+	println: println
+	default: default
+	is: is
+	map: map
+	each: each
+	slice: slice
+	filter: filter
+	exclude: exclude
+	append: append
+	serial: serial
+	parallel: parallel
+	separate: separate
+} := import('std')
+{
+	cut: cut
+	join: join
+	padEnd: padEnd
+	startsWith?: startsWith?
+	endsWith?: endsWith?
+} := import('str')
+fs := import('fs')
+fmt := import('fmt')
+cli := import('cli')
+math := import('math')
+sort := import('sort')
+path := import('path')
+debug := import('debug')
+
+config := import('../config')
+
+// NOTE: explain this
+Templates := config.Templates
+TemplateFiles := '{{{ templateFiles }}}'
+
+Cli := with cli.parseArgv() if {
+	args().1 |> endsWith?('main.oak') -> args()
+	_ -> ['oak', 'etch.oak'] |> append(args() |> slice(1))
+}
+
+Dest := Cli.opts.dest |> default(Cli.opts.d) |> default('.')
+Force? := Cli.opts.force |> default(Cli.opts.f) |> default(false)
+
+fn printHelp {
+	println('Etch is a project scaffolding tool.
+
+List all templates:
+	etch ls
+Information about a template:
+	etch info [template]
+Create a project from a template:
+	etch new [template] [params]
+
+Options
+	--dest, -d  The location at which to create the project. $PWD
+	            by default.
+	--force, -f Overwrite the destination directory even if there are existing
+	            files there.
+')
+}
+
+fn listTemplates {
+	tplNames := keys(Templates) |> sort.sort()
+	maxTplNameLen := math.max(tplNames |> map(len)...)
+	tplNames |> with each() fn(tplName) {
+		fmt.printf(
+			'{{0}}  {{1}}'
+			tplName |> padEnd(maxTplNameLen, ' ')
+			Templates.(tplName).description
+		)
+	}
+}
+
+if Cli.verb {
+	'help' -> printHelp()
+	'ls' -> listTemplates()
+	'info' -> {
+		if tplName := Cli.args.0 {
+			? -> {
+				println('No template specified.\n\nAvailable templates:')
+				listTemplates()
+				exit(1)
+			}
+			_ -> if tpl := Templates.(tplName) {
+				? -> {
+					fmt.printf('No template named "{{0}}".\n\nAvailable templates:', tplName)
+					listTemplates()
+					exit(1)
+				}
+				_ -> {
+					name: tplName
+					description: tpl.description
+					params: tpl.params |> map(fn(p) [p.0, p.2])
+				} |> debug.println({ indent: '    ' })
+			}
+		}
+	}
+	'new' -> {
+		// validate template
+		tplName := Cli.args.0
+		if ? = tpl := Templates.(tplName) -> {
+			fmt.printf('No template named "{{0}}".\n\nAvailable templates:', tplName)
+			listTemplates()
+			exit(1)
+		}
+		invalidParams := tpl.params |> with filter() fn(param) {
+			[name, coerce] := param
+			val := Cli.opts.(name)
+			val = ? | coerce(val) = ?
+		}
+		if len(invalidParams) > 0 -> {
+			println('Missing and invalid parameters:')
+
+			paramNames := invalidParams |> map(0)
+			maxParamNameLen := math.max(paramNames |> map(len)...)
+			invalidParams |> with each() fn(param) {
+				[name, _, desc] := param
+				fmt.printf(
+					'    {{0}}  {{1}}'
+					name |> padEnd(maxParamNameLen, ' ')
+					desc
+				)
+			}
+			exit(1)
+		}
+
+		// validate dest
+		if files := fs.listFiles(Dest) {
+			? -> {
+				fmt.printf('Could not open "{{0}}."', Dest)
+				exit(1)
+			}
+			[] -> ?
+			_ -> if !Force? -> {
+				fmt.printf('"{{0}}" is not empty. Use --force to overwrite.', Dest)
+				exit(1)
+			}
+		}
+
+		tplFilePaths := keys(TemplateFiles) |>
+			filter(fn(p) p |> startsWith?(tplName + '/')) |>
+			exclude(is(tplName + '/')) |>
+			sort.sort()
+		[tplDirs, tplFiles] := tplFilePaths |> separate(fn(p) p |> endsWith?('/'))
+
+		fn printlog(type, path) fmt.printf('Creating {{0}} "{{1}}".', type, path)
+
+		// create all directories first, serially
+		tplDirs |> with serial(fn(tplDirWithName, _, next) {
+			tplDir := path.join(Dest, cut(tplDirWithName, '/').1) |> fmt.format(Cli.opts)
+			printlog(:dir, tplDir)
+			with mkdir(tplDir) fn(evt) if evt.type {
+				:error -> {
+					fmt.printf('Could not create directory "{{0}}".', tplDir)
+					exit(1)
+				}
+				_ -> next()
+			}
+		}) fn {
+			// then we can create all files in parallel
+			tplFiles |> with parallel(fn(tplFileWithName, _, next) {
+				tplFile := path.join(Dest, cut(tplFileWithName, '/').1) |> fmt.format(Cli.opts)
+				fileContent := TemplateFiles.(tplFileWithName) |> fmt.format(Cli.opts)
+				printlog(:file, tplFile)
+				with fs.writeFile(tplFile, fileContent) fn(res) if res {
+					? -> {
+						fmt.printf('Could not create file "{{0}}".', tplFile)
+						exit(1)
+					}
+					_ -> next()
+				}
+			}) fn {
+				println('Done.')
+			}
+		}
+	}
+	_ -> fmt.printf('I\'m not sure what "{{0}}" means. See "etch help" for help.', Cli.verb)
+}
+

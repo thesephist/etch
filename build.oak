@@ -1,0 +1,102 @@
+// build script
+
+{
+	println: println
+	map: map
+	each: each
+	slice: slice
+	entries: entries
+} := import('std')
+{
+	replace: replace
+	join: join
+	endsWith?: endsWith?
+} := import('str')
+fs := import('fs')
+sort := import('sort')
+path := import('path')
+debug := import('debug')
+
+TplDir := 'tpl'
+DraftEntrypoint := './src/main.oak'
+BuildEntrypoint := './src/_main.oak'
+
+fn includePath?(path) if {
+	path = '.DS_Store'
+	path |> endsWith?('.swp') -> false
+	_ -> true
+}
+
+fn allTemplatePaths(withPaths) {
+	waits := 1 // './tpl'
+	tplPaths := []
+	pathlib := path
+
+	fn subpaths(path) {
+		waits <- waits + 1
+		with fs.listFiles(path) fn(files) {
+			files |> with each() fn(file) if includePath?(file.name) -> {
+				tplPaths << fullPath := pathlib.join(path, file.name) + if file.dir {
+					true -> '/'
+					_ -> ''
+				}
+				if file.dir -> subpaths(fullPath)
+			}
+
+			waits <- waits - 1
+			if waits = 0 -> withPaths(tplPaths |> sort.sort())
+		}
+	}
+
+	subpaths(TplDir)
+
+	waits <- waits - 1
+}
+
+fn allTemplatesFromPaths(tplPaths, withTpls) {
+	tpls := {}
+
+	fn resolveIfDone() if len(tplPaths) = len(tpls) -> withTpls(tpls)
+
+	fn stripTplDir(path) path |> slice(len(TplDir + '/'))
+
+	tplPaths |> with each() fn(tplPath) if tplPath |> endsWith?('/') {
+		true -> {
+			tpls.(stripTplDir(tplPath)) := ?
+			resolveIfDone()
+		}
+		_ -> with fs.readFile(tplPath) fn(file) if file {
+			? -> {
+				println('[build] Could not read template file ' + tplPath)
+				exit(1)
+			}
+			_ -> {
+				tpls.(stripTplDir(tplPath)) := file
+				resolveIfDone()
+			}
+		}
+	}
+}
+
+fn allTemplates(withTpls) {
+	with allTemplatePaths() fn(tplPaths) {
+		allTemplatesFromPaths(tplPaths, withTpls)
+	}
+}
+
+with fs.readFile(DraftEntrypoint) fn(file) if file {
+	? -> println('[build] Could not read ' + Entrypoint)
+	_ -> with allTemplates() fn(tpls) {
+		replacement := '{' + tpls |>
+			entries() |>
+			map(fn(entry) debug.inspect(entry.0) + ':' + debug.inspect(entry.1)) |>
+			join(', ') +
+			'}'
+		replaced := file |> replace('\'{{{ templateFiles }}}\'', replacement)
+		with fs.writeFile(BuildEntrypoint, replaced) fn(res) if res {
+			? -> println('[build] Could not save ' + BuildEntrypoint)
+			_ -> {} // no-op
+		}
+	}
+}
+

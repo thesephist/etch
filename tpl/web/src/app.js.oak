@@ -1,0 +1,26 @@
+{
+	println: println
+	default: default
+	map: map
+} := import('std')
+{
+} := import('str')
+{
+	Renderer: Renderer
+	h: h
+} := import('../lib/torus.js')
+
+State := {
+	// state
+}
+
+r := Renderer('#root')
+
+fn render {
+	with r.update() h(:div, ['app'], [
+		'Hello, {{ name }}!'
+	])
+}
+
+render()
+

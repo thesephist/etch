@@ -1,0 +1,8 @@
+// {{ slug }} is a CLI
+
+{
+	println: println
+} := import('std')
+
+println('Hello {{ name }}!')
+

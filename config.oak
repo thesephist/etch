@@ -1,0 +1,33 @@
+Templates := {
+	mini: {
+		description: 'Basic "Hello World" app'
+		params: [
+			['name', string, 'Name of the program']
+			['slug', string, 'Slug for the program, lowercase & no spaces']
+		]
+	}
+	html: {
+		description: 'Static site'
+		params: [
+			['name', string, 'Name of the project']
+			['slug', string, 'Slug for the project, lowercase & no spaces']
+		]
+	}
+	web: {
+		description: 'Full-stack Oak web application'
+		params: [
+			['name', string, 'Name of the project']
+			['slug', string, 'Slug for the project, lowercase & no spaces']
+			['port', int, 'The TCP localhost port on which this web app runs']
+		]
+	}
+	pyweb: {
+		description: 'Full-stack Flask web application'
+		params: [
+			['name', string, 'Name of the project']
+			['slug', string, 'Slug for the project, lowercase & no spaces']
+			['port', int, 'The TCP localhost port on which this web app runs']
+		]
+	}
+}
+

@@ -1,2 +1,9 @@
-# etch
-Dead simple project scaffolding for my commonly used layouts
+# Etch
+
+**Etch** is a command-line tool for scaffolding out projects.
+
+## Design
+
+## Adding a new template
+
+## Development

@@ -1,9 +1,9 @@
 Templates := {
-	mini: {
-		description: 'Basic "Hello World" app'
+	cli: {
+		description: 'Command-line app'
 		params: [
-			['name', string, 'Name of the program']
-			['slug', string, 'Slug for the program, lowercase & no spaces']
+			['name', string, 'Name of the CLI']
+			['slug', string, 'Slug for the project, lowercase & no spaces']
 		]
 	}
 	html: {

@@ -1,0 +1,31 @@
+// {{ slug }} is a CLI
+
+{
+	println: println
+	slice: slice
+	append: append
+} := import('std')
+{
+	endsWith?: endsWith?
+} := import('str')
+cli := import('cli')
+
+Cli := with cli.parseArgv() if {
+	args().1 |> endsWith?('main.oak') -> args()
+	_ -> ['oak', '{{ slug }}.oak'] |> append(args() |> slice(1))
+}
+
+if Cli.opts.help != ? | Cli.opts.h != ? -> {
+	println('{{ name }} is a CLI.
+
+Usage
+	{{ slug }} [options]
+
+Options
+	--help      Show this help message
+')
+	exit(0)
+}
+
+println('Hello {{ name }}!')
+

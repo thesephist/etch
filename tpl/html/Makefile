@@ -2,12 +2,12 @@ all: watch
 
 # build app
 build:
-	oak build --entry app.js.oak --output js/bundle.js --web
+	oak build --entry src/app.js.oak --output js/bundle.js --web
 b: build
 
 # build whenever Oak sources change
 watch:
-	ls *.oak | entr -cr make build
+	ls lib/*.oak src/*.oak | entr -cr make build
 w: watch
 
 # format changed Oak source

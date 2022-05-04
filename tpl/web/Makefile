@@ -11,7 +11,7 @@ b: build
 
 # build whenever Oak sources change
 watch:
-	ls *.oak lib/*.oak src/*.oak | entr -cr make build
+	ls lib/*.oak src/*.oak | entr -cr make build
 w: watch
 
 # format changed Oak source

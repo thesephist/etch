@@ -11,7 +11,7 @@
 cli := import('cli')
 
 Cli := with cli.parseArgv() if {
-	args().1 |> endsWith?('main.oak') -> args()
+	args().1 |> default('') |> endsWith?('main.oak') -> args()
 	_ -> ['oak', '{{ slug }}.oak'] |> append(args() |> slice(1))
 }
 
@@ -22,7 +22,7 @@ Usage
 	{{ slug }} [options]
 
 Options
-	--help      Show this help message
+	--help, -h  Show this help message
 ')
 	exit(0)
 }

@@ -2,6 +2,7 @@
 
 {
 	println: println
+	default: default
 	slice: slice
 	append: append
 } := import('std')

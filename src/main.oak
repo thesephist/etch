@@ -31,7 +31,15 @@ debug := import('debug')
 
 config := import('../config')
 
-// NOTE: explain this
+// While template definitions and configurations are declared in config.oak,
+// the content of actual templates themselves are laid out as normal text files
+// in the repository and "bundled in" into this file at build time, as the
+// global variable `TemplateFiles` here.
+//
+// The build script `build.oak` will replace the below string literal with the
+// collated content of every template file in the repository. If everything
+// works correctly, the string literal '{{{ templateFiles }}}' should therefore
+// never appear in the final binary.
 Templates := config.Templates
 TemplateFiles := '{{{ templateFiles }}}'
 
